@@ -1,0 +1,47 @@
+{
+  "name": "create-web-cli",
+  "version": "0.1.0",
+  "description": "A modern frontend project initializer with multi-stack support",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "create-web": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "cli",
+    "generator",
+    "scaffold",
+    "web",
+    "react",
+    "vue",
+    "nextjs",
+    "typescript"
+  ],
+  "author": "Liam",
+  "license": "MIT",
+  "dependencies": {
+    "@create-web-cli/core": "workspace:*",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "execa": "^9.5.3",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^9.2.15",
+    "listr2": "^7.0.2",
+    "ora": "^7.0.1"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.8",
+    "typescript": "^5.3.3"
+  }
+}
