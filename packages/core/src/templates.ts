@@ -7,7 +7,7 @@ import { TemplateInfo } from './types.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 模板目录路径（假设模板在项目根目录）
+// 模板目录路径（后期考虑直接拉git仓库）
 const TEMPLATES_DIR = path.resolve(__dirname, '../../../templates');
 
 /**
