@@ -1,9 +1,9 @@
-import fs from 'fs-extra';
-import path from 'path';
-import { Listr } from 'listr2';
-import { 
-  ProjectConfig, 
-  templateExists, 
+import fs from "fs-extra";
+import path from "path";
+import { Listr } from "listr2";
+import {
+  ProjectConfig,
+  templateExists,
   getTemplatePath,
   generateEnvFiles,
   generateGitignore,
@@ -14,23 +14,23 @@ import {
   generateHuskyConfig,
   generateLintStagedConfig,
   getProjectDependencies,
-  generatePackageJson
-} from '@create-web-cli/core';
-import { execa } from 'execa';
+  generatePackageJson,
+} from "@create-web-cli/core";
+import { execa } from "execa";
 
 /**
  * Vue版本的lint-staged配置
  */
 function generateVueLintStagedConfig(): Record<string, string> {
   return {
-    'lint-staged.config.cjs': `module.exports = {
+    "lint-staged.config.cjs": `module.exports = {
   "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
   "{!(package)*.json,*.code-snippets,.!(browserslist)*rc}": ["prettier --write--parser json"],
   "package.json": ["prettier --write"],
   "*.vue": ["eslint --fix", "prettier --write", "stylelint --fix"],
   "*.{scss,less,styl,html}": ["stylelint --fix", "prettier --write"],
   "*.md": ["prettier --write"]
-};`
+};`,
   };
 }
 
@@ -39,7 +39,7 @@ function generateVueLintStagedConfig(): Record<string, string> {
  */
 function generateVueCommitlintConfig(): Record<string, string> {
   return {
-    'commitlint.config.cjs': `// @see: https://cz-git.qbenben.com/zh/guide
+    "commitlint.config.cjs": `// @see: https://cz-git.qbenben.com/zh/guide
 const fs = require("fs");
 const path = require("path");
 
@@ -174,7 +174,7 @@ module.exports = {
     customScopesAlias: "custom",
     allowBreakingChanges: ["feat", "fix"]
   }
-};`
+};`,
   };
 }
 
@@ -182,46 +182,61 @@ module.exports = {
  * 根据配置生成项目
  */
 export async function generate(config: ProjectConfig): Promise<void> {
-  const { name, template, typescript, buildTool, ui, styling, linting, git, packageManager } = config;
-  
+  const {
+    name,
+    template,
+    typescript,
+    buildTool,
+    ui,
+    styling,
+    linting,
+    git,
+    packageManager,
+  } = config;
+
   // 项目目标目录
   const destDir = path.resolve(process.cwd(), name);
-  
+
   // 检查目录是否已存在
   if (fs.existsSync(destDir)) {
     throw new Error(`目录 ${name} 已存在`);
   }
-  
+
   // 检查模板是否存在
-  if (!templateExists(template, 'basic')) {
+  if (!templateExists(template, "basic")) {
     throw new Error(`模板 ${template}/basic 不存在`);
   }
-  
+
   // 创建项目目录
   fs.mkdirSync(destDir, { recursive: true });
-  
+
   // 定义任务
   const tasks = new Listr([
     {
-      title: '复制模板文件',
+      title: "复制模板文件",
       task: async () => {
         // 获取模板路径
-        const templateDir = getTemplatePath(template, typescript ? 'ts' : 'basic');
-        
+        const templateDir = getTemplatePath(
+          template,
+          typescript ? "ts" : "basic"
+        );
+
         // 如果TypeScript模板不存在，使用基础模板
-        const sourceDir = fs.existsSync(templateDir) ? templateDir : getTemplatePath(template, 'basic');
-        
+        const sourceDir = fs.existsSync(templateDir)
+          ? templateDir
+          : getTemplatePath(template, "basic");
+
         // 复制模板文件
         await fs.copy(sourceDir, destDir, {
           filter: (src) => {
             const basename = path.basename(src);
-            return basename !== 'template.json';
-          }
+            return basename !== "template.json";
+          },
         });
-      }
+      },
     },
     {
-      title: '创建 package.json',
+      title: "创建 package.json",
       task: async () => {
         // 获取依赖
         const { dependencies, devDependencies } = getProjectDependencies({
@@ -231,9 +246,9 @@ export async function generate(config: ProjectConfig): Promise<void> {
           ui,
           styling,
           linting,
-          git
+          git,
         });
-        
+
         // 生成 package.json
         const packageJsonContent = generatePackageJson({
           name,
@@ -241,83 +256,92 @@ export async function generate(config: ProjectConfig): Promise<void> {
           devDependencies,
           framework: template,
           buildTool,
-          typescript
+          typescript,
         });
-        
+
         // 写入 package.json
-        await fs.writeFile(path.join(destDir, 'package.json'), packageJsonContent);
-      }
+        await fs.writeFile(
+          path.join(destDir, "package.json"),
+          packageJsonContent
+        );
+      },
     },
     {
-      title: '创建环境变量文件',
+      title: "创建环境变量文件",
       task: async () => {
         const envFiles = generateEnvFiles({ name });
-        
+
         for (const [filename, content] of Object.entries(envFiles)) {
           await fs.writeFile(path.join(destDir, filename), content);
         }
-      }
+      },
     },
     {
-      title: '创建 .gitignore',
+      title: "创建 .gitignore",
       task: async () => {
-        const gitignoreContent = generateGitignore({ typescript, framework: template });
-        await fs.writeFile(path.join(destDir, '.gitignore'), gitignoreContent);
-      }
+        const gitignoreContent = generateGitignore({
+          typescript,
+          framework: template,
+        });
+        await fs.writeFile(path.join(destDir, ".gitignore"), gitignoreContent);
+      },
     },
     {
-      title: '配置 ESLint',
+      title: "配置 ESLint",
       enabled: () => linting.eslint,
       task: async () => {
-        const eslintConfig = generateEslintConfig({ typescript, framework: template });
-        
+        const eslintConfig = generateEslintConfig({
+          typescript,
+          framework: template,
+        });
+
         for (const [filename, content] of Object.entries(eslintConfig)) {
           await fs.writeFile(path.join(destDir, filename), content);
         }
-      }
+      },
     },
     {
-      title: '配置 Prettier',
+      title: "配置 Prettier",
       enabled: () => linting.prettier,
       task: async () => {
         const prettierConfig = generatePrettierConfig();
-        
+
         for (const [filename, content] of Object.entries(prettierConfig)) {
           await fs.writeFile(path.join(destDir, filename), content);
         }
-      }
+      },
     },
     {
-      title: '配置 Stylelint',
+      title: "配置 Stylelint",
       enabled: () => linting.stylelint === true,
       task: async () => {
         const stylelintConfig = generateStylelintConfig();
-        
+
         for (const [filename, content] of Object.entries(stylelintConfig)) {
           await fs.writeFile(path.join(destDir, filename), content);
         }
-      }
+      },
     },
     {
-      title: '配置 Git',
+      title: "配置 Git",
       task: async () => {
         // 初始化 git 仓库
-        await execa('git', ['init'], { cwd: destDir });
-        
+        await execa("git", ["init"], { cwd: destDir });
+
         if (git.husky) {
           // 根据框架选择使用不同的commitlint配置
           let commitlintConfig;
-          if (template === 'vue') {
+          if (template === "vue") {
             commitlintConfig = generateVueCommitlintConfig();
           } else {
             commitlintConfig = generateCommitlintConfig();
           }
-          
+
           const huskyConfig = generateHuskyConfig();
-          
+
           // 对于Vue项目使用Vue的lint-staged配置
           let lintStagedConfig;
-          if (template === 'vue') {
+          if (template === "vue") {
             lintStagedConfig = generateVueLintStagedConfig();
           } else {
             // 其他框架使用通用的配置
@@ -325,39 +349,41 @@ export async function generate(config: ProjectConfig): Promise<void> {
               typescript,
               framework: template,
               prettier: linting.prettier,
-              stylelint: linting.stylelint === true
+              stylelint: linting.stylelint === true,
             });
           }
-          
+
           for (const [filename, content] of Object.entries(commitlintConfig)) {
             await fs.writeFile(path.join(destDir, filename), content);
           }
-          
+
           // 创建 .husky 目录
-          await fs.mkdirp(path.join(destDir, '.husky'));
-          
+          await fs.mkdirp(path.join(destDir, ".husky"));
+
           for (const [filename, content] of Object.entries(huskyConfig)) {
             await fs.writeFile(path.join(destDir, filename), content);
             // 使 husky 脚本可执行
-            if (filename.startsWith('.husky/')) {
+            if (filename.startsWith(".husky/")) {
               await fs.chmod(path.join(destDir, filename), 0o755);
             }
           }
-          
+
           for (const [filename, content] of Object.entries(lintStagedConfig)) {
             await fs.writeFile(path.join(destDir, filename), content);
           }
         }
-      }
+      },
     },
     {
-      title: '创建 README.md',
+      title: "创建 README.md",
       task: async () => {
         const readmeContent = `# ${name}
 
 ## 项目介绍
 
-这是一个使用 create-web-cli 创建的 ${template.charAt(0).toUpperCase() + template.slice(1)} 项目。
+这是一个使用 create-web-cli 创建的 ${
+          template.charAt(0).toUpperCase() + template.slice(1)
+        } 项目。
 
 ## 开发
 
@@ -375,11 +401,11 @@ ${packageManager} run dev
 ${packageManager} run build
 \`\`\`
 `;
-        
-        await fs.writeFile(path.join(destDir, 'README.md'), readmeContent);
-      }
-    }
+
+        await fs.writeFile(path.join(destDir, "README.md"), readmeContent);
+      },
+    },
   ]);
-  
+
   await tasks.run();
-} 
+}

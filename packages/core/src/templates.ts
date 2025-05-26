@@ -1,41 +1,43 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { TemplateInfo } from './types.js';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { TemplateInfo } from "./types.js";
 
 // 获取当前模块的目录名
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 模板目录路径（后期考虑直接拉git仓库）
-const TEMPLATES_DIR = path.resolve(__dirname, '../../../templates');
+const TEMPLATES_DIR = path.resolve(__dirname, "../../../templates");
 
 /**
  * 获取特定框架的可用模板
  */
 export async function getTemplates(framework: string): Promise<TemplateInfo[]> {
   const frameworkDir = path.join(TEMPLATES_DIR, framework);
-  
+
   if (!fs.existsSync(frameworkDir)) {
     throw new Error(`Framework "${framework}" not found`);
   }
-  
+
   const templateDirs = fs.readdirSync(frameworkDir);
   const templates: TemplateInfo[] = [];
-  
+
   for (const dir of templateDirs) {
-    const templateJsonPath = path.join(frameworkDir, dir, 'template.json');
-    
+    const templateJsonPath = path.join(frameworkDir, dir, "template.json");
+
     if (fs.existsSync(templateJsonPath)) {
       try {
-        const templateInfo = JSON.parse(fs.readFileSync(templateJsonPath, 'utf8')) as TemplateInfo;
+        const templateInfo = JSON.parse(
+          fs.readFileSync(templateJsonPath, "utf8")
+        ) as TemplateInfo;
         templates.push(templateInfo);
       } catch (error) {
         console.error(`Error parsing template.json in ${dir}:`, error);
       }
     }
   }
-  
+
   return templates;
 }
 
@@ -44,11 +46,11 @@ export async function getTemplates(framework: string): Promise<TemplateInfo[]> {
  */
 export function getFrameworks(): string[] {
   if (!fs.existsSync(TEMPLATES_DIR)) {
-    return ['vue', 'react', 'nextjs']; // 如果模板目录不存在，返回默认框架
+    return ["vue", "react", "nextjs"]; // 如果模板目录不存在，返回默认框架
   }
-  
+
   const dirs = fs.readdirSync(TEMPLATES_DIR);
-  return dirs.filter(dir => {
+  return dirs.filter((dir) => {
     const stat = fs.statSync(path.join(TEMPLATES_DIR, dir));
     return stat.isDirectory();
   });
@@ -67,4 +69,4 @@ export function getTemplatePath(framework: string, template: string): string {
 export function templateExists(framework: string, template: string): boolean {
   const templatePath = getTemplatePath(framework, template);
   return fs.existsSync(templatePath);
-} 
+}

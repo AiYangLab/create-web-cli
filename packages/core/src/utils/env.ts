@@ -5,7 +5,9 @@
 /**
  * 生成环境变量文件内容
  */
-export function generateEnvFiles(options: { name: string }): Record<string, string> {
+export function generateEnvFiles(options: {
+  name: string;
+}): Record<string, string> {
   const envContent = `# 应用环境变量
 APP_NAME=${options.name}
 NODE_ENV=development
@@ -24,18 +26,21 @@ API_URL=https://api.example.com
 `;
 
   return {
-    '.env': envContent,
-    '.env.development': envDevContent,
-    '.env.production': envProdContent
+    ".env": envContent,
+    ".env.development": envDevContent,
+    ".env.production": envProdContent,
   };
 }
 
 /**
  * 生成gitignore文件内容
  */
-export function generateGitignore(options: { typescript: boolean, framework: string }): string {
+export function generateGitignore(options: {
+  typescript: boolean;
+  framework: string;
+}): string {
   const { typescript, framework } = options;
-  
+
   const content = `# Dependencies
 node_modules
 .pnp
@@ -47,7 +52,9 @@ coverage
 # Build output
 dist
 build
-out${framework === 'nextjs' ? '\n.next' : ''}${framework === 'vue' ? '\n.nuxt' : ''}
+out${framework === "nextjs" ? "\n.next" : ""}${
+    framework === "vue" ? "\n.nuxt" : ""
+  }
 
 # Environment variables
 .env.local
@@ -77,4 +84,4 @@ pnpm-debug.log*
 `;
 
   return content;
-} 
+}
