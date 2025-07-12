@@ -19,6 +19,19 @@ import {
 import { execa } from "execa";
 
 /**
+ * 修复配置文件格式问题
+ * 移除多余的缩进和空格
+ */
+function fixConfigFileFormat(content: string): string {
+  // 移除每行开头的多余空格
+  return content.replace(/^[ \t]+/gm, match => {
+    // 保留第一个缩进级别（如果有的话）
+    const indentLevel = Math.floor(match.length / 2);
+    return '  '.repeat(indentLevel > 0 ? indentLevel - 1 : 0);
+  });
+}
+
+/**
  * Vue版本的lint-staged配置
  */
 function generateVueLintStagedConfig(): Record<string, string> {
@@ -296,7 +309,10 @@ export async function generate(config: ProjectConfig): Promise<void> {
         });
 
         for (const [filename, content] of Object.entries(eslintConfig)) {
-          await fs.writeFile(path.join(destDir, filename), content);
+          await fs.writeFile(
+            path.join(destDir, filename), 
+            fixConfigFileFormat(content)
+          );
         }
       },
     },
@@ -307,7 +323,10 @@ export async function generate(config: ProjectConfig): Promise<void> {
         const prettierConfig = generatePrettierConfig();
 
         for (const [filename, content] of Object.entries(prettierConfig)) {
-          await fs.writeFile(path.join(destDir, filename), content);
+          await fs.writeFile(
+            path.join(destDir, filename), 
+            fixConfigFileFormat(content)
+          );
         }
       },
     },
@@ -318,7 +337,10 @@ export async function generate(config: ProjectConfig): Promise<void> {
         const stylelintConfig = generateStylelintConfig();
 
         for (const [filename, content] of Object.entries(stylelintConfig)) {
-          await fs.writeFile(path.join(destDir, filename), content);
+          await fs.writeFile(
+            path.join(destDir, filename), 
+            fixConfigFileFormat(content)
+          );
         }
       },
     },
@@ -354,14 +376,20 @@ export async function generate(config: ProjectConfig): Promise<void> {
           }
 
           for (const [filename, content] of Object.entries(commitlintConfig)) {
-            await fs.writeFile(path.join(destDir, filename), content);
+            await fs.writeFile(
+              path.join(destDir, filename), 
+              fixConfigFileFormat(content)
+            );
           }
 
           // 创建 .husky 目录
           await fs.mkdirp(path.join(destDir, ".husky"));
 
           for (const [filename, content] of Object.entries(huskyConfig)) {
-            await fs.writeFile(path.join(destDir, filename), content);
+            await fs.writeFile(
+              path.join(destDir, filename), 
+              fixConfigFileFormat(content)
+            );
             // 使 husky 脚本可执行
             if (filename.startsWith(".husky/")) {
               await fs.chmod(path.join(destDir, filename), 0o755);
@@ -369,7 +397,10 @@ export async function generate(config: ProjectConfig): Promise<void> {
           }
 
           for (const [filename, content] of Object.entries(lintStagedConfig)) {
-            await fs.writeFile(path.join(destDir, filename), content);
+            await fs.writeFile(
+              path.join(destDir, filename), 
+              fixConfigFileFormat(content)
+            );
           }
         }
       },
@@ -403,6 +434,116 @@ ${packageManager} run build
 `;
 
         await fs.writeFile(path.join(destDir, "README.md"), readmeContent);
+      },
+    },
+    {
+      title: "更新 VSCode 配置",
+      enabled: () => linting.eslint || linting.stylelint === true,
+      task: async () => {
+        const vscodeSettingsPath = path.join(destDir, ".vscode/settings.json");
+        
+        // 如果已经存在VSCode配置，则读取并更新
+        if (fs.existsSync(vscodeSettingsPath)) {
+          try {
+            const settings: Record<string, any> = JSON.parse(fs.readFileSync(vscodeSettingsPath, 'utf8'));
+            
+            // 确保codeActionsOnSave存在
+            if (!settings.editor) settings.editor = {};
+            if (!settings.editor.codeActionsOnSave) settings.editor.codeActionsOnSave = {};
+            
+            // 根据用户选择添加ESLint配置
+            if (linting.eslint) {
+              settings.editor.codeActionsOnSave["source.fixAll.eslint"] = "explicit";
+              settings["eslint.enable"] = true;
+              settings["eslint.validate"] = ["javascript", "javascriptreact"];
+              
+              if (typescript) {
+                settings["eslint.validate"].push("typescript", "typescriptreact");
+              }
+              
+              if (template === "vue") {
+                settings["eslint.validate"].push("vue");
+              }
+            }
+            
+            // 根据用户选择添加Stylelint配置
+            if (linting.stylelint === true) {
+              settings.editor.codeActionsOnSave["source.fixAll.stylelint"] = "explicit";
+              settings["stylelint.enable"] = true;
+              settings["stylelint.validate"] = ["css", "scss", "less"];
+              
+              if (template === "vue") {
+                settings["stylelint.validate"].push("vue");
+              }
+            }
+            
+            // 写回配置文件
+            await fs.writeFile(
+              vscodeSettingsPath,
+              JSON.stringify(settings, null, 2)
+            );
+          } catch (error) {
+            console.error("更新VSCode配置失败:", error);
+          }
+        } else {
+          // 如果不存在VSCode配置，则创建一个新的
+          await fs.mkdirp(path.join(destDir, ".vscode"));
+          
+          const settings: Record<string, any> = {
+            "editor": {
+              "formatOnSave": true,
+              "codeActionsOnSave": {} as Record<string, string>
+            }
+          };
+          
+          // 根据用户选择添加ESLint配置
+          if (linting.eslint) {
+            settings.editor.codeActionsOnSave["source.fixAll.eslint"] = "explicit";
+            settings["eslint.enable"] = true;
+            settings["eslint.validate"] = ["javascript", "javascriptreact"];
+            
+            if (typescript) {
+              settings["eslint.validate"].push("typescript", "typescriptreact");
+            }
+            
+            if (template === "vue") {
+              settings["eslint.validate"].push("vue");
+            }
+          }
+          
+          // 根据用户选择添加Stylelint配置
+          if (linting.stylelint === true) {
+            settings.editor.codeActionsOnSave["source.fixAll.stylelint"] = "explicit";
+            settings["stylelint.enable"] = true;
+            settings["stylelint.validate"] = ["css", "scss", "less"];
+            
+            if (template === "vue") {
+              settings["stylelint.validate"].push("vue");
+            }
+          }
+          
+          // 写入配置文件
+          await fs.writeFile(
+            vscodeSettingsPath,
+            JSON.stringify(settings, null, 2)
+          );
+          
+          // 创建extensions.json
+          const extensions = {
+            "recommendations": [
+              ...(linting.eslint ? ["dbaeumer.vscode-eslint"] : []),
+              ...(linting.prettier ? ["esbenp.prettier-vscode"] : []),
+              ...(linting.stylelint === true ? ["stylelint.vscode-stylelint"] : []),
+              ...(template === "vue" ? ["Vue.volar"] : []),
+              ...(template === "react" || template === "nextjs" ? ["dsznajder.es7-react-js-snippets"] : [])
+            ]
+          };
+          
+          await fs.writeFile(
+            path.join(destDir, ".vscode/extensions.json"),
+            JSON.stringify(extensions, null, 2)
+          );
+        }
       },
     },
   ]);

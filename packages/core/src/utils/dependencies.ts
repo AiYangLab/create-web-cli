@@ -242,6 +242,16 @@ export function generatePackageJson(options: {
     scripts.lint = "next lint";
   }
 
+  // 添加ESLint脚本 - 只在用户选择了ESLint时添加
+  const hasEslint = devDependencies.some(dep => dep === "eslint");
+  if (hasEslint && !scripts.lint) {
+    const extensions = typescript 
+      ? ".js,.jsx,.ts,.tsx" 
+      : framework === "vue" ? ".js,.vue" : ".js,.jsx";
+    scripts.lint = `eslint . --ext ${extensions}`;
+    scripts["lint:fix"] = `eslint . --ext ${extensions} --fix`;
+  }
+
   const packageJson = {
     name,
     private: true,
